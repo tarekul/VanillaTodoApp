@@ -1,22 +1,18 @@
-//Model
-class TodoData {
+class TodoData{
   constructor(){
     this.list = JSON.parse(localStorage.getItem('todolist')) || [];
   }
-
-  save(value){
-    this.list.unshift(value);
+  save(todo){
+    this.list.unshift(todo);
     localStorage.setItem('todolist',JSON.stringify(this.list));
   }
-
   delete(index){
     this.list.splice(index,1);
     localStorage.setItem('todolist',JSON.stringify(this.list));
   }
 }
 
-//View
-class View {
+class View{
   constructor(name,render){
     this.name = name;
     this.render = render;
@@ -25,95 +21,96 @@ class View {
 
 class App{
   constructor(){
-    // Initialize model
-    this.todos = new TodoData();
-    // My list of views
+    //todo object with save and delete capabilities
+    this.todoData = new TodoData();
     this.views = [];
+  }
+  addView(name,html){
+    this.views.push(new View(name,html));
+  }
+  addEvent(element,event,handler){
+    const domE = document.querySelector(element);
+    domE.addEventListener(event,handler);
   }
 
   initializeViews(){
     const root = document.querySelector('#root');
-    let applicationHTML = '<div class = "container mt-5">';
+    let applicationHTML = '<div class="container mt-5">';
 
     for(let view of this.views){
       applicationHTML += `<div id=${view.name}>${view.render()}</div>`;
     }
 
-    root.innerHTML = applicationHTML + '</div>';
-  }
-
-  addView(name,html){
-    this.views.push(new View(name,html));
-  }
-
-  addEvent(element,event,handler){
-    //Selects element and adds event listener to it with handler
-    const domE = document.querySelector(element);
-    domE.addEventListener(event, handler)
+    root.innerHTML = applicationHTML + '</div>'
   }
 
   rerenderView(name){
     for(let view of this.views){
-      if(view.name === name){
-        const domE = document.querySelector(`#${view.name}`)
+      if(name === view.name){
+        const domE = document.querySelector(`#${name}`)
         domE.innerHTML = view.render();
-        const inputE = document.querySelector('.js-text-input')
-        inputE.value = '';
       }
     }
+    
+    const inputE = document.querySelector('.js-text-input')
+    inputE.value = '';
+    
   }
-
 }
 
 const app = new App();
-app.addView('header', () => `
-  <div class="jumbotron jumbotron-fluid">
-      <div class="container">
-        <h1 class="display-4">Todo List App</h1>
-      </div>
-    </div>
-`)
 
-app.addView('input', () => `
-  <div class="input-group mb-3">
-    <input type="text" class="js-text-input form-control" placeholder="Add...">
-    <div class="input-group-append">
-      <button class="js-add btn btn-outline-secondary" type="button" id="button-addon2">Add</button>
+app.addView('header',()=> `
+  <div class="jumbotron jumbotron-fluid">
+    <div class="container">
+      <h1 class="display-4">Todo List App</h1>
     </div>
   </div>
 `)
 
+app.addView('input',()=>{
+  return `<div class="input-group mb-3">
+    <input type="text" class="js-text-input form-control" placeholder="Add...">
+    <div class="input-group-append">
+      <button class="js-add btn btn-outline-secondary" type="button" id="button-addon2">Add</button>
+    </div>
+  </div>`
+})
 
-app.addView('list',()=> {
-  let list = '<ul class="list-group mx-3">'
-  for(let i =0; i<app.todos.list.length;i++){
-    list += `<li class="list-group-item">
-      ${app.todos.list[i]}
-      <button type="button" class="close" aria-label="Close" >
-        <span aria-hidden="true" data-i="${i}">&times;</span>
-      </button>
+app.addView('list',()=>{
+  let list = `<ul class="list-group">`
+  for(let i=0;i<app.todoData.list.length;i++){
+    list += `<li class="list-group-item d-flex justify-content-between align-items-center">
+      ${app.todoData.list[i]}
+      <span class="badge badge-primary badge-pill" data-i=${i}>X</span>
     </li>`
   }
-  list += '</ul>'
+  list += '</ul>';
   return list;
 })
 
 app.initializeViews();
 
 app.addEvent('.js-add','click',(e)=>{
-  e.preventDefault();
   const input = document.querySelector('.js-text-input')
   if(input.value.trim() !== ''){
-    app.todos.save(input.value)
-    app.rerenderView('list')
+    app.todoData.save(input.value);
+    app.rerenderView('list');
+  }
+})
+
+app.addEvent('.js-text-input','keydown',(e)=>{
+  if(e.target.value.trim() !== '' && e.code === 'Enter'){
+    app.todoData.save(e.target.value);
+    app.rerenderView('list');
   }
 })
 
 app.addEvent('#list','click',(e)=>{
-  e.preventDefault();
   if(e.target.attributes['data-i']){
-    const index = e.target.attributes['data-i'].value
-    app.todos.list.splice(index,1);
-    app.rerenderView('list')
+    const index = e.target.attributes['data-i'].value;
+    console.log(index)
+    app.todoData.delete(index);
+    app.rerenderView('list');
   }
 })
